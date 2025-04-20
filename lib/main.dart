@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_todo_app/controllers/product_cubit.dart';
 
-import 'bloc/task_bloc.dart';
 
 void main() {
   runApp(const MyApp());
@@ -33,71 +33,80 @@ class MyHomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-          backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-          title: Text(title)
-      ),
-      body: Center(
-          child: BlocProvider(
-        create: (context) => TaskBloc(),
-        child: BlocBuilder<TaskBloc, TaskState>(
+    return BlocProvider(
+      create: (context) => ProductCubit()..getLoadedProducts(),
+      child: Scaffold(
+        appBar: AppBar(
+            backgroundColor: Theme
+                .of(context)
+                .colorScheme
+                .inversePrimary,
+            title: Text(title)
+        ),
+        body: BlocBuilder<ProductCubit, ProductState>(
           builder: (context, state) {
-            final bloc = context.read<TaskBloc>();
-            return Column(
-              children: [
-                const SizedBox(height: 20),
-                TextField(
-                  controller: controller,
-                  decoration: const InputDecoration(
-                    labelText: 'Enter Task',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                ElevatedButton(
-                  onPressed: () {
-                    if (controller.text.isEmpty) {
-                      return;
-                    }
-                    bloc.add(TaskAddEvent(controller.text));
 
-                    controller.clear();
-                  },
-                  child: const Text('Add Task'),
-                ),
-                ListView.builder(
-                  shrinkWrap: true,
-                  itemCount: state.tasksList.length,
+            switch(state) {
+              case ProductLoading():
+
+                return const Center(child: CircularProgressIndicator());
+                // TODO: Handle this case.
+              case ProductLoaded():
+                return GridView.builder(
+                  padding: const EdgeInsets.all(10),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    crossAxisSpacing: 10,
+                    mainAxisSpacing: 10,
+                    childAspectRatio: 0.7,
+                  ),
+                  itemCount: state.productList.length,
                   itemBuilder: (context, index) {
-                    return ListTile(
-                      title: Text(state.tasksList[index].title),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
+                    final product = state.productList[index];
+                    return Card(
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      elevation: 5,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          Checkbox(
-                              value: state.tasksList[index].isCompleted,
-                              onChanged: (value) {
-                                bloc.add(
-                                    TaskToggleEvent(state.tasksList[index].id));
-                              }),
-                          IconButton(
-                            icon: const Icon(Icons.delete),
-                            onPressed: () {
-                              bloc.add(
-                                  TaskRemoveEvent(state.tasksList[index].id));
-                            },
+                          Expanded(
+                            child: Image.network(
+                              product.image,
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Text(
+                              product.title,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(fontWeight: FontWeight.bold),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          Text(
+                            "\$${product.price}",
+                            style: const TextStyle(fontSize: 16, color: Colors.green),
                           ),
                         ],
                       ),
                     );
                   },
-                ),
-              ],
-            );
+                );
+                // TODO: Handle this case.
+              case ProductErrorMessage():
+                return Center(
+                  child: Text(state.errorMessage.toString()),
+                );
+                // TODO: Handle this case.
+            }
+
+
+
           },
         ),
-      )),
+      ),
     );
   }
 }
